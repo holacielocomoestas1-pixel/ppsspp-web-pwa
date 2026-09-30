@@ -68,11 +68,22 @@ y el emulador no arranca.
 - **GitHub Pages NO sirve**: no permite cabeceras personalizadas.
 - **Cloudflare Pages SÍ**: copia `_headers.example` como `_headers` en la raíz.
 - **Render**: un *Static Site* no garantiza estas cabeceras vía API; la vía
-  verificada es un **Web Service** (tier gratuito) que ejecute `serve.py`,
+  elegida es un **Web Service** (tier gratuito) que ejecute `serve.py`,
   que las emite él mismo:
-  - Build Command: *(vacío)*
-  - Start Command: `python3 serve.py` (lee el puerto de `$PORT`)
-  - Repo con el contenido de este directorio en la raíz.
+  - Repo: https://github.com/holacielocomoestas1-pixel/ppsspp-web-pwa
+  - Runtime: Docker (`Dockerfile` incluido) — el intento inicial con runtime
+    `python` nativo falló en el build sin mensaje útil.
+  - Servicio: `ppsspp-web-pwa` → https://ppsspp-web-pwa.onrender.com
+
+### ⚠️ Despliegue BLOQUEADO el 2026-09-30 (límite de la cuenta, no del proyecto)
+
+Los dos deploys fallaron con el evento `pipeline_minutes_exhausted`: la
+cuenta de Render agotó sus minutos de build del tier gratuito. No es un
+problema del código ni de la configuración — es cuota de la cuenta.
+Opciones: esperar al reset mensual (el 1 de octubre es mañana) o que Kevin
+decida subir de plan. El servicio quedó creado con `autoDeploy: yes`, así
+que cuando haya cuota debería desplegarse solo desde `main`.
+**No se gastó dinero ni se crearon cuentas nuevas.**
 
 ## Guardados
 
