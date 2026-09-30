@@ -17,6 +17,7 @@ import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 8080))
+HOST = os.environ.get("HOST", "127.0.0.1")  # en Render: HOST=0.0.0.0
 
 class Handler(SimpleHTTPRequestHandler):
     extensions_map = {
@@ -39,8 +40,8 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
 if __name__ == '__main__':
-    srv = ThreadingHTTPServer(('127.0.0.1', PORT), Handler)
-    print(f'PPSSPP Web en http://127.0.0.1:{PORT}/  (COOP/COEP activas)')
+    srv = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f'PPSSPP Web en http://{HOST}:{PORT}/  (COOP/COEP activas)')
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
