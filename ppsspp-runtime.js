@@ -916,6 +916,7 @@ async function playOrMountStoredGame(name) {
   if (!started || !window.FS) {
     selectedStoredGame = name;
     selectedGame = null;
+    selectedHomebrew = null;
     if (fileLabel) fileLabel.title = name;
     updateIdleOverlay();
     const textNode = fileLabel?.firstChild;
@@ -1133,6 +1134,7 @@ async function refreshLibrary() {
   empty.textContent = "Loading library…";
 
   try {
+    renderHomebrewSection().catch(e => log("Homebrew section failed: " + e.message, "warn"));
     const games = await opfsWalk(OPFS_GAMES_DIR, "", false);
     games.sort((a, b) => a.path.localeCompare(b.path));
     const preloadFavorites = new Set(prunePreloadFavorites(games.map(game => game.path)));
@@ -4286,6 +4288,32 @@ function persistSelectedGameInBackground(file) {
 }
 
 async function preloadGame(FS) {
+  // Homebrew package selected from the homebrew library section
+  if (selectedHomebrew) {
+    const catalog = await loadHomebrewCatalog();
+    const entry = catalog.find(x => x.id === selectedHomebrew);
+    if (entry) {
+      setStatus("Loading homebrew: " + entry.titulo, "run");
+      showLoading("Loading " + entry.titulo + "…");
+      try {
+        if (!await isHomebrewDownloaded(entry)) {
+          await downloadHomebrew(entry, (done, total) =>
+            showLoading("Downloading " + entry.titulo + "… " + done + "/" + total, total ? done / total : undefined));
+        }
+        const bootPath = await mountHomebrew(FS, entry);
+        log("Homebrew mounted and ready: " + bootPath, "ok");
+        return bootPath;
+      } catch(e) {
+        log("Homebrew load failed: " + (e?.message || e), "err");
+        showToast("❌ " + (e?.message || e));
+        selectedHomebrew = null;
+      } finally {
+        hideLoading();
+      }
+    } else {
+      selectedHomebrew = null;
+    }
+  }
   if (!selectedGame && !selectedStoredGame) return null;
   FS.mkdirTree(VIRTUAL_GAME_DIR);
   const sourceName = selectedGame ? selectedGame.name : selectedStoredGame;
@@ -4317,6 +4345,179 @@ async function preloadGame(FS) {
   log("Game mounted in MEMFS" + (selectedGame ? " and saved to OPFS" : " from OPFS") + ": " + path, "ok");
   return path;
 }
+
+/* ── Homebrew library (juegos libres y gratuitos, sin ROMs comerciales) ── */
+const OPFS_HOMEBREW_DIR  = "homebrew";          // OPFS dir for downloaded homebrew packages
+const HOMEBREW_MOUNT_ROOT = VIRTUAL_GAME_DIR + "/__hb_"; // MEMFS mount prefix, e.g. /games/__hb_powder
+let selectedHomebrew = null;                    // id of the homebrew package being booted
+let _homebrewCatalog = null;
+
+async function loadHomebrewCatalog() {
+  if (_homebrewCatalog) return _homebrewCatalog;
+  try {
+    const res = await fetch("homebrew/catalog.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    _homebrewCatalog = Array.isArray(json.juegos) ? json.juegos : [];
+  } catch(e) {
+    log("Homebrew catalog unavailable: " + (e?.message || e), "warn");
+    _homebrewCatalog = [];
+  }
+  return _homebrewCatalog;
+}
+
+async function homebrewStoredFiles(entry) {
+  // relative paths inside OPFS homebrew/<id>/
+  const files = await opfsWalk(OPFS_HOMEBREW_DIR, entry.id, false);
+  return new Set(files.map(f => f.path));
+}
+
+async function isHomebrewDownloaded(entry) {
+  const have = await homebrewStoredFiles(entry);
+  return (entry.archivos || []).every(rel => have.has(entry.id + "/" + rel));
+}
+
+async function downloadHomebrew(entry, onProgress) {
+  const files = entry.archivos || [];
+  let done = 0;
+  for (const rel of files) {
+    const url = "homebrew/psp/" + entry.id + "/" + rel;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("No se pudo descargar " + rel + " (HTTP " + res.status + ")");
+    const bytes = await readResponseBytes(res, entry.titulo + " — " + rel);
+    const { dir, name } = await opfsParent(entry.id + "/" + rel, true, OPFS_HOMEBREW_DIR);
+    const handle = await dir.getFileHandle(name, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(bytes);
+    await writable.close();
+    done++;
+    onProgress?.(done, files.length);
+  }
+  log("Homebrew downloaded to OPFS: " + entry.id + " (" + files.length + " file(s))", "ok");
+}
+
+async function mountHomebrew(FS, entry) {
+  const mountDir = HOMEBREW_MOUNT_ROOT + entry.id;
+  FS.mkdirTree(mountDir);
+  for (const rel of (entry.archivos || [])) {
+    const { dir, name } = await opfsParent(entry.id + "/" + rel, false, OPFS_HOMEBREW_DIR);
+    const file = await (await dir.getFileHandle(name)).getFile();
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const dest = mountDir + "/" + rel;
+    FS.mkdirTree(dest.split("/").slice(0, -1).join("/") || "/");
+    FS.writeFile(dest, bytes);
+  }
+  return mountDir + "/" + (entry.boot || "EBOOT.PBP");
+}
+
+async function playHomebrew(id) {
+  const catalog = await loadHomebrewCatalog();
+  const entry = catalog.find(e => e.id === id);
+  if (!entry) { showToast("Homebrew no encontrado"); return; }
+  try {
+    if (!await isHomebrewDownloaded(entry)) {
+      showToast("Descargando " + entry.titulo + "…");
+      await downloadHomebrew(entry, (done, total) =>
+        showLoading("Descargando " + entry.titulo + "… " + done + "/" + total, total ? done / total : undefined));
+      hideLoading();
+      showToast("✓ " + entry.titulo + " descargado");
+      await renderHomebrewSection();
+      updateStorageInfo();
+    }
+    selectedHomebrew = id;
+    selectedGame = null;
+    selectedStoredGame = null;
+    if (!started || !window.FS) {
+      if (fileLabel) fileLabel.title = entry.titulo;
+      updateIdleOverlay();
+      setStatus("Starting " + entry.titulo, "run");
+      showToast("Iniciando " + entry.titulo + "…");
+      start();
+      return;
+    }
+    showToast("Montando " + entry.titulo + "…");
+    await mountHomebrew(window.FS, entry);
+    refreshEmulatorGameBrowser("homebrew " + id);
+    showToast("✓ " + entry.titulo + " montado — ábrelo en el navegador del emulador");
+    refreshLibrary();
+  } catch(e) {
+    hideLoading();
+    log("Homebrew failed: " + (e?.message || e), "err");
+    showToast("❌ " + (e?.message || e));
+  }
+}
+
+function homebrewSectionEl() {
+  const grid = document.getElementById("libraryGrid");
+  if (!grid) return null;
+  let sec = document.getElementById("homebrewSection");
+  if (!sec) {
+    sec = document.createElement("section");
+    sec.id = "homebrewSection";
+    sec.className = "hb-section";
+    grid.parentNode.insertBefore(sec, grid);
+  }
+  return sec;
+}
+
+function injectHomebrewStyles() {
+  if (document.getElementById("hbStyles")) return;
+  const style = document.createElement("style");
+  style.id = "hbStyles";
+  style.textContent = `
+    .hb-section { margin: 0 0 18px; }
+    .hb-head { margin: 4px 2px 10px; }
+    .hb-head h3 { margin: 0 0 4px; font-size: 1.05rem; }
+    .hb-head p { margin: 0; opacity: .72; font-size: .85rem; }
+    .hb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .hb-card { border: 1px solid rgba(127,127,127,.28); border-radius: 12px; overflow: hidden; background: rgba(127,127,127,.07); display: flex; flex-direction: column; }
+    .hb-cover { height: 86px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.5); }
+    .hb-body { padding: 10px 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .hb-title { font-weight: 700; font-size: .92rem; line-height: 1.25; }
+    .hb-meta { font-size: .76rem; opacity: .7; }
+    .hb-desc { font-size: .78rem; opacity: .85; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .hb-body button { margin-top: auto; padding: 8px 10px; border-radius: 9px; border: 0; font-weight: 700; cursor: pointer; }
+  `;
+  document.head.appendChild(style);
+}
+
+async function renderHomebrewSection() {
+  const sec = homebrewSectionEl();
+  if (!sec) return;
+  injectHomebrewStyles();
+  const catalog = await loadHomebrewCatalog();
+  if (!catalog.length) { sec.style.display = "none"; return; }
+  sec.style.display = "";
+  const cards = [];
+  for (const entry of catalog) {
+    let downloaded = false;
+    try { downloaded = await isHomebrewDownloaded(entry); } catch(e) {}
+    const initials = entry.titulo.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    cards.push(`
+      <div class="hb-card">
+        <div class="hb-cover" style="background:${gameAccent("hb-" + entry.id)}">${esc(initials)}</div>
+        <div class="hb-body">
+          <div class="hb-title">${esc(entry.titulo)}</div>
+          <div class="hb-meta">${esc(entry.genero || "")} · ${esc(entry.tamano || "")}</div>
+          <div class="hb-desc">${esc(entry.descripcion || "")}</div>
+          <button data-hb-action="${downloaded ? "play" : "download"}" data-hb-id="${esc(entry.id)}">${downloaded ? "▶ Jugar" : "⬇ Descargar"}</button>
+        </div>
+      </div>`);
+  }
+  sec.innerHTML = `
+    <div class="hb-head">
+      <h3>🎮 Homebrew gratis</h3>
+      <p>Juegos libres y gratuitos, verificados. Se descargan una vez y quedan guardados en tu biblioteca.</p>
+    </div>
+    <div class="hb-grid">${cards.join("")}</div>`;
+}
+
+document.addEventListener("click", e => {
+  const btn = e.target.closest("[data-hb-action]");
+  if (!btn) return;
+  e.preventDefault();
+  playHomebrew(btn.dataset.hbId);
+});
 
 /* ── Panel navigation ───────────────────────────────────────────── */
 function activatePanelTab(tabName) {
@@ -4579,6 +4780,7 @@ function installTouchMouseShim() {
 on(fileInput, "change", () => {
   selectedGame = fileInput?.files?.[0] || null;
   selectedStoredGame = null;
+  selectedHomebrew = null;
   if (fileLabel) fileLabel.title = selectedGame ? selectedGame.name : "Open game";
   // Update the visible text node inside the label
   const textNode = fileLabel?.firstChild;

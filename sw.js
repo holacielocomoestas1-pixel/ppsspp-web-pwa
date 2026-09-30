@@ -4,7 +4,7 @@
  * del dispositivo (input file) y los guardados viven en OPFS/IndexedDB del navegador.
  * Cualquier petición que no sea parte del shell se sirve solo de red, sin cachear.
  */
-const CACHE = 'ppsspp-shell-v1';
+const CACHE = 'ppsspp-shell-v2';
 const SHELL = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const SHELL = [
   './styles-SL6FIHK4.css',
   './ppsspp-runtime.js',
   './manifest.json',
+  './homebrew/catalog.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-192-maskable.png',
