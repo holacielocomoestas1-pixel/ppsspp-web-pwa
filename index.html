@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" data-beasties-container>
+<head>
+  <meta charset="utf-8">
+  <title>PPSSPP Web</title>
+  <base href="./">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=overlays-content">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00d4aa">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PPSSPP">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon-512.svg">
+<style>:root{color-scheme:dark;--bg:#080a0c;--surface:#0f1318;--surface2:#171d24;--surface3:#1d242e;--border:#1e2730;--border2:#273240;--text:#dce8f2;--muted:#687c8f;--accent:#00d4aa;--accent2:#00b391;--warn:#f5a623;--danger:#ff5f5f;--info:#5ba4e8;--h:48px;--radius:10px;--radius-sm:6px;--shadow:0 8px 32px rgba(0,0,0,.6);--glow:0 0 0 2px rgba(0,212,170,.3);--viewport-w:100vw;--app-h:100dvh;--stage-pad:12px;--panel-w:clamp(320px, 28vw, 420px)}*,*:before,*:after{box-sizing:border-box;margin:0;padding:0}html{height:100%;background:var(--bg);overscroll-behavior:none;-webkit-text-size-adjust:100%}body{width:100%;min-width:320px;height:var(--app-h);overflow:hidden;background:var(--bg);color:var(--text);font:13px/1.5 Inter,system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}app-root{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}@media(max-width:700px),(pointer:coarse)and (max-height:560px),(pointer:coarse)and (max-width:920px){:root{--h:50px;--stage-pad:0px}html,body{height:var(--app-h);min-height:var(--app-h);overflow:hidden}body{position:fixed;inset:0;font-size:13px}}@media(pointer:coarse)and (orientation:landscape)and (max-height:560px){:root{--h:44px}}</style><link rel="stylesheet" href="styles-SL6FIHK4.css" media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="styles-SL6FIHK4.css"></noscript></head>
+<body>
+  <app-root></app-root>
+  <!-- Aviso de licencia GPL-2.0-or-later (emulador PPSSPP, código de root-hunter/ppsspp-web).
+       Visible y descartable; no interfiere con el juego. -->
+  <div id="gpl-chip" role="note" aria-label="Aviso de licencia">
+    <span>Emulador PPSSPP · <a href="LICENSE.TXT" target="_blank" rel="noopener">GPL-2.0-or-later</a> · <a href="SOURCE.md" target="_blank" rel="noopener">fuentes</a></span>
+    <button id="gpl-chip-x" aria-label="Ocultar aviso">✕</button>
+  </div>
+  <style>
+    #gpl-chip{position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;align-items:center;gap:8px;
+      background:rgba(8,10,12,.88);border:1px solid #1e2730;border-radius:8px;padding:6px 8px 6px 10px;
+      font:11px/1.4 system-ui,sans-serif;color:#687c8f;backdrop-filter:blur(4px)}
+    #gpl-chip a{color:#00d4aa;text-decoration:none}
+    #gpl-chip button{background:none;border:0;color:#687c8f;font-size:11px;cursor:pointer;padding:2px 4px}
+    #gpl-chip.hidden{display:none}
+  </style>
+  <script>
+    (function(){
+      try{
+        var chip=document.getElementById('gpl-chip');
+        if(localStorage.getItem('gpl-chip-hide')==='1'){chip.classList.add('hidden');}
+        document.getElementById('gpl-chip-x').addEventListener('click',function(){
+          chip.classList.add('hidden');
+          try{localStorage.setItem('gpl-chip-hide','1');}catch(e){}
+        });
+      }catch(e){}
+      if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+        window.addEventListener('load',function(){
+          navigator.serviceWorker.register('sw.js').catch(function(){});
+        });
+      }
+    })();
+  </script>
+<script src="main-MIIWU7DR.js" type="module"></script></body>
+</html>

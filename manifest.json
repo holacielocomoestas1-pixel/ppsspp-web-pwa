@@ -1,0 +1,59 @@
+{
+  "background_color": "#080a0c",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "description": "PPSSPP – emulador de PSP en tu navegador vía WebAssembly. Carga tus propios juegos (ISO/CSO/CHD/PBP).",
+  "display": "standalone",
+  "icons": [
+    {
+      "purpose": "any",
+      "sizes": "192x192",
+      "src": "icons/icon-192.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "any",
+      "sizes": "512x512",
+      "src": "icons/icon-512.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "192x192",
+      "src": "icons/icon-192-maskable.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "maskable",
+      "sizes": "512x512",
+      "src": "icons/icon-512-maskable.png",
+      "type": "image/png"
+    }
+  ],
+  "lang": "es",
+  "name": "PPSSPP Web — Emulador PSP",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "scope": "./",
+  "short_name": "PPSSPP",
+  "start_url": "./",
+  "theme_color": "#00d4aa",
+  "screenshots": [
+    {
+      "src": "icons/screenshot-wide.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "PPSSPP Web — menú del emulador (escritorio)"
+    },
+    {
+      "src": "icons/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "PPSSPP Web — menú del emulador (móvil)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+# Ejemplo de cabeceras para Cloudflare Pages (copiar como `_headers` en la raíz del deploy).
+# PPSSPP-WASM necesita SharedArrayBuffer -> exige COOP/COEP en TODAS las respuestas.
+# GitHub Pages NO permite cabeceras personalizadas: NO sirve para este proyecto.
+
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+# MIME correcto para el binario WASM (Cloudflare ya lo sirve bien, esto es por si acaso)
+/build-wasm/*.wasm
+  Content-Type: application/wasm
